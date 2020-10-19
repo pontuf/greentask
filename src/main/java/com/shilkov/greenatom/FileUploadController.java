@@ -3,8 +3,14 @@ package com.shilkov.greenatom;
 import java.io.File;
 import java.io.IOException;
 import java.sql.Date;
+import java.text.DateFormat;
 import java.util.ArrayList;
+import java.util.Collections;
+import java.util.Comparator;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
+import java.util.TreeMap;
 import java.util.stream.Collectors;
 
 import org.springframework.beans.factory.annotation.Autowired;
@@ -33,7 +39,7 @@ import com.shilkov.greenatom.storage.StorageFileNotFoundException;
 import com.shilkov.greenatom.storage.StorageService;
 import com.shilkov.greenatom.FileRepository;
 
-@Controller
+@RestController
 public class FileUploadController {
 
 	private final StorageService storageService;
@@ -58,43 +64,79 @@ public class FileUploadController {
 	@GetMapping("/userlist")
 	@ResponseBody
 	public List<String> getUserList() {
-		
+
 		UserDetails principal = (UserDetails) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
-		
-		
+
 		List<FileEntity> userlist = (List<FileEntity>) fileRepository.findAll();
 		List<String> ul = new ArrayList<String>();
 		for (int i = 0; i < userlist.size(); i++) {
 			if (!ul.contains(userlist.get(i).getFileuser()))
 				ul.add(userlist.get(i).getFileuser());
 		}
-		
+
 		return ul;
+	}
+
+	@GetMapping("/topdate")
+	@ResponseBody
+	public Date getTopDate() {
+		HashMap<Date, Integer> datemap = new HashMap<>();
+		Date topdate = Date.valueOf("1900-1-1");
+		List<FileEntity> userlist = (List<FileEntity>) fileRepository.findAll();
+
+		for (int i = 0; i < userlist.size(); i++) {
+			if (!datemap.containsKey(userlist.get(i).getDate()))
+				datemap.put(userlist.get(i).getDate(), 1);
+			else
+				datemap.replace(userlist.get(i).getDate(), datemap.get(userlist.get(i).getDate()) + 1);
+		}
+		int maxcount = Collections.max(datemap.values());
+		for (Map.Entry<Date, Integer> entry : datemap.entrySet()) {
+			if (entry.getValue().equals(maxcount))
+				topdate = entry.getKey();
+		}
+
+		return topdate;
+	}
+
+	// Method for sorting the TreeMap based on values
+	public static <K, V extends Comparable<V>> Map<K, V> sortByValues(final Map<K, V> map) {
+		Comparator<K> valueComparator = new Comparator<K>() {
+			public int compare(K k1, K k2) {
+				int compare = map.get(k1).compareTo(map.get(k2));
+				if (compare == 0)
+					return 1;
+				else
+					return compare;
+			}
+		};
+
+		Map<K, V> sortedByValues = new TreeMap<K, V>(valueComparator);
+		sortedByValues.putAll(map);
+		return sortedByValues;
+	}
+
+	@GetMapping("/sorteduserlist")
+	@ResponseBody
+	public Map<String, Integer> getSortedUserList() {
+		TreeMap<String, Integer> sul = new TreeMap<>();
+
+		List<FileEntity> userlist = (List<FileEntity>) fileRepository.findAll();
+
+		for (int i = 0; i < userlist.size(); i++) {
+			if (!sul.containsKey(userlist.get(i).getFileuser()))
+				sul.put(userlist.get(i).getFileuser(), 1);
+			else
+				sul.replace(userlist.get(i).getFileuser(), sul.get(userlist.get(i).getFileuser()) + 1);
+		}
+
+		return sortByValues(sul);
 	}
 
 	@GetMapping("/")
 	public String listUploadedFiles(Model model) throws IOException {
-
-		/*
-		 * model.addAttribute("files", storageService.loadAll() .map(path ->
-		 * MvcUriComponentsBuilder .fromMethodName(FileUploadController.class,
-		 * "serveFile", path.getFileName().toString()) .build().toUri().toString())
-		 * .collect(Collectors.toList()));
-		 */
-
-		return "uploadForm";
+		return "Authentication was successful.";
 	}
-
-	/*
-	 * @GetMapping("/files/{filename:.+}")
-	 * 
-	 * @ResponseBody public ResponseEntity<Resource> serveFile(@PathVariable String
-	 * filename) {
-	 * 
-	 * Resource file = storageService.loadAsResource(filename); return
-	 * ResponseEntity.ok() .header(HttpHeaders.CONTENT_DISPOSITION,
-	 * "attachment; filename=\"" + file.getFilename() + "\"") .body(file); }
-	 */
 
 	@PostMapping("/")
 	@ResponseBody
