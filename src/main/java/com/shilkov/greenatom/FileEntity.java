@@ -1,7 +1,6 @@
 package com.shilkov.greenatom;
 
 import java.sql.Date;
-
 import javax.persistence.Column;
 import javax.persistence.Entity;
 import javax.persistence.GeneratedValue;
@@ -9,11 +8,9 @@ import javax.persistence.GenerationType;
 import javax.persistence.Id;
 import javax.persistence.SequenceGenerator;
 import javax.persistence.Table;
-
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 
-
-@Entity // This tells Hibernate to make a table out of this class
+@Entity 
 @JsonIgnoreProperties({ "hibernateLazyInitializer", "handler" })
 @Table(name = "filetable")
 public class FileEntity {
