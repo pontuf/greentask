@@ -1,9 +1,7 @@
 package com.shilkov.greenatom;
 
-import java.io.File;
 import java.io.IOException;
 import java.sql.Date;
-import java.text.DateFormat;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
@@ -11,33 +9,24 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.TreeMap;
-import java.util.stream.Collectors;
-
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.core.io.Resource;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.context.SecurityContextHolder;
-import org.springframework.security.core.session.SessionRegistry;
 import org.springframework.security.core.userdetails.UserDetails;
-import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseBody;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.multipart.MultipartFile;
-import org.springframework.web.servlet.mvc.method.annotation.MvcUriComponentsBuilder;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
 import com.shilkov.greenatom.storage.StorageFileNotFoundException;
 import com.shilkov.greenatom.storage.StorageService;
-import com.shilkov.greenatom.FileRepository;
 
 @RestController
 public class FileUploadController {
@@ -54,8 +43,13 @@ public class FileUploadController {
 	@GetMapping("/get")
 	@ResponseBody
 	public ResponseEntity<Resource> serveFile(@RequestParam("id") int id) {
+		Resource file;
+		try {
+			file = storageService.loadAsResource(fileRepository.findById(id).get(0).getName());
+		} catch (Exception e) {
+			return ResponseEntity.notFound().build();
+		}
 
-		Resource file = storageService.loadAsResource(fileRepository.findById(id).get(0).getName());
 		return ResponseEntity.ok()
 				.header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"" + file.getFilename() + "\"")
 				.body(file);
@@ -102,6 +96,7 @@ public class FileUploadController {
 	// Method for sorting the TreeMap based on values
 	public static <K, V extends Comparable<V>> Map<K, V> sortByValues(final Map<K, V> map) {
 		Comparator<K> valueComparator = new Comparator<K>() {
+			@Override
 			public int compare(K k1, K k2) {
 				int compare = map.get(k1).compareTo(map.get(k2));
 				if (compare == 0)
